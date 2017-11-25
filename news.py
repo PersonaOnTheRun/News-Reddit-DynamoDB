@@ -29,6 +29,9 @@ reddit = praw.Reddit(client_id=cid,
                      password=pword)
 subreddit = reddit.subreddit('thenewsrightnow')
 
+#home or away
+home = '/Users/cammilligan/Dropbox/Projects/News-Reddit-DynamoDB/warehouse.txt'
+away = '/home/ec2-user/newsengine/scripts/warehouse.txt'
 
 
 ##initalize dynamodb connection
@@ -46,7 +49,7 @@ table = dynamodb.Table(tname)
 
 
 #innitialize newsapi requests & session
-sources = ['the-verge','the-wall-street-journal','the-washington-post','time','usa-today','the-new-york-times','the-huffington-post','the-guardian-uk','techcrunch','techradar','the-economist','reuters','sky-news','national-geographic','new-scientist','new-york-magazine','ign','independent','hacker-news','google-news','fortune','financial-times','engadget','bloomberg','business-insider','cnbc','cnn','daily-mail','associated-press','bbc-news']
+sources = ['the-verge','the-wall-street-journal','the-washington-post','time','usa-today','the-new-york-times','the-huffington-post','the-guardian-uk','techcrunch','techradar','the-economist','reuters','national-geographic','new-scientist','new-york-magazine','ign','independent','hacker-news','google-news','fortune','financial-times','engadget','bloomberg','business-insider','cnbc','cnn','daily-mail','associated-press','bbc-news']
 apiKey = apik
 sortBy = 'top'
 link = 'https://newsapi.org/v1/articles?'
@@ -60,7 +63,7 @@ freshdumptitles = []
 
 def initializewh():
     print('initializing warehouse')
-    with open('/home/ec2-user/newsengine/scripts/warehouse.txt', 'r') as wh:
+    with open(home, 'r') as wh:
         x = json.loads(wh.read())
         x = json.loads(x)
         for article in x:
@@ -80,12 +83,16 @@ def getcurrentdt():
 def runit():
     print(getcurrentdt())
     for i in sources:
+        print(i)
         payload = {'source': i, 'apiKey': apiKey,'sortBy': sortBy}
         req = requests.Request('GET', link, params=payload)
         r = req.prepare()
         raw_data = s.send(r)
         raw_data = raw_data.json()
-        raw_data = raw_data['articles']
+        try:
+            raw_data = raw_data['articles']
+        except:
+            continue
         for article in raw_data:
             article.update({'source':i})
             article.update({'capturedat':getcurrentdt()})
