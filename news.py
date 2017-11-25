@@ -17,15 +17,16 @@ from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 import datetime
 from dateutil import tz
+import hashlib
 
 from credentials import *
 
 #innitialize reddit
 import praw
-reddit = praw.Reddit(client_id=cid,
-                     client_secret=csecret,
-                     user_agent=uagent,
-                     username=uname,
+reddit = praw.Reddit(client_id=cid[0],
+                     client_secret=csecret[0],
+                     user_agent=uagent[0],
+                     username=uname[0],
                      password=pword)
 subreddit = reddit.subreddit('thenewsrightnow')
 
@@ -44,7 +45,7 @@ class DecimalEncoder(json.JSONEncoder):
                 return int(o)
         return super(DecimalEncoder, self).default(o)
 
-dynamodb = boto3.resource('dynamodb',region_name='us-west-2')
+dynamodb = boto3.resource('dynamodb',region_name='us-east-1')
 table = dynamodb.Table(tname)
 
 
@@ -63,7 +64,7 @@ freshdumptitles = []
 
 def initializewh():
     print('initializing warehouse')
-    with open(home, 'r') as wh:
+    with open(away, 'r') as wh:
         x = json.loads(wh.read())
         x = json.loads(x)
         for article in x:
@@ -102,7 +103,7 @@ def runit():
     cleanupwarehouse()
 
 def cleanupwarehouse():
-    with open('/home/ec2-user/newsengine/scripts/warehouse.txt', 'w+') as whc:
+    with open(away, 'w+') as whc:
         x = json.dumps(freshdump)
         json.dump(x,whc)
         whc.close()
@@ -116,13 +117,19 @@ def prunewarehouse(freshdump,freshdumptitles):
             publish(warehousedarticle)
     print('publishing complete')
 
+z = []
+
 def publish(warehousedarticle):
     try:
         x = reddit.subreddit('thenewsrightnow').submit(warehousedarticle['title'], url=warehousedarticle['url'],resubmit=False)
-        warehousedarticle.update({'lastseenat':getcurrentdt()})
         warehousedarticle.update({'redditid':x.id})
         warehousedarticle.update({'redditurl':x.url})
-        #assign keys
+    except:
+        print(warehousedarticle['capturedat'])
+        print('error during reddit posting')
+        print(warehousedarticle['title'])
+    try:        
+        warehousedarticle.update({'lastseenat':getcurrentdt()})
         author = warehousedarticle['author']
         capturedat = warehousedarticle['capturedat']
         lastseenat = warehousedarticle['lastseenat']
@@ -134,7 +141,19 @@ def publish(warehousedarticle):
         urlToImage = warehousedarticle['urlToImage']
         redditid = warehousedarticle['redditid']
         redditurl = warehousedarticle['redditurl']
+    except:
+        print('error during warehousedarticle updating')
+    try:
+        hex_dig = hashlib.sha256(json.dumps(warehousedarticle, sort_keys=True).encode('utf-8')).hexdigest()
+    except:
+        print('error during hashing')
+        
+    try:
+        z.append(warehousedarticle)
+    except:
+        print("couldn't append to z")
 
+    try:
         print("Publishing article:", source, title)
         table.put_item(
                 Item={
@@ -149,11 +168,12 @@ def publish(warehousedarticle):
                     'urlToImage': urlToImage,
                     'redditid': redditid,
                     'redditurl': redditurl,
+                    'articleid': hex_dig,
                 }
             )
     except:
-        print('error during publishing')
-        print(warehousedarticle['title'])
-        print(warehousedarticle['capturedat'])
+        print('error during dynamodb publishing')
+        print()
+
 
 runit()
