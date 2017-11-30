@@ -17,7 +17,7 @@ from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 import datetime
 from dateutil import tz
-import hashlib
+
 
 import uuid
 
@@ -39,6 +39,14 @@ away = '/home/ec2-user/newsengine/scripts/warehouse.txt'
 #unhash below if on AWS
 home = away
 
+if home == away:
+    userid = "AWS"
+else:
+    userid = "Macbook"
+
+#unhash below if testing
+#usources = ['the-verge']
+
 
 ##initalize dynamodb connection
 class DecimalEncoder(json.JSONEncoder):
@@ -56,6 +64,7 @@ table = dynamodb.Table(tname)
 
 #innitialize newsapi requests & session
 sources = ['the-verge','the-wall-street-journal','the-washington-post','time','usa-today','the-new-york-times','the-huffington-post','the-guardian-uk','techcrunch','techradar','the-economist','reuters','national-geographic','new-scientist','new-york-magazine','ign','independent','hacker-news','google-news','fortune','financial-times','engadget','bloomberg','business-insider','cnbc','cnn','daily-mail','associated-press','bbc-news']
+
 apiKey = apik
 sortBy = 'top'
 link = 'https://newsapi.org/v1/articles?'
@@ -127,40 +136,63 @@ def publish(warehousedarticle):
     try:
         x = reddit.subreddit('thenewsrightnow').submit(warehousedarticle['title'], url=warehousedarticle['url'],resubmit=False)
         warehousedarticle.update({'redditid':x.id})
+        #print(warehousedarticle['redditid'])
         warehousedarticle.update({'redditurl':x.url})
+        #print(warehousedarticle['redditurl'])
     except:
         print(warehousedarticle['capturedat'])
         print('error during reddit posting')
         print(warehousedarticle['title'])
     try:        
         warehousedarticle.update({'lastseenat':getcurrentdt()})
+        #print('success during warehousedarticle updating 1')
         author = warehousedarticle['author']
+        #print('success during warehousedarticle updating 2')
         capturedat = warehousedarticle['capturedat']
+        #print('success during warehousedarticle updating 3')
         lastseenat = warehousedarticle['lastseenat']
+        #print('success during warehousedarticle updating 4')
         description = warehousedarticle['description']
+        #print('success during warehousedarticle updating 5')
         publishedAt = warehousedarticle['publishedAt']
+        #print('success during warehousedarticle updating 6')
         source = warehousedarticle['source']
+        #print('success during warehousedarticle updating 7')
         title = warehousedarticle['title']
+        #print('success during warehousedarticle updating 8')
         url = warehousedarticle['url']
+        #print('success during warehousedarticle updating 9')
         urlToImage = warehousedarticle['urlToImage']
-        redditid = warehousedarticle['redditid']
-        redditurl = warehousedarticle['redditurl']
+        #print('success during warehousedarticle updating 10')
     except:
-        print('error during warehousedarticle updating')
+        print('error during warehousedarticle updating part 1')
+    try:    
+        redditid = warehousedarticle['redditid']
+        #print('success during warehousedarticle updating 11')
+        redditurl = warehousedarticle['redditurl']
+        #print('success during warehousedarticle updating 12')
+    except:
+        redditid = 'error'
+        redditurl = 'error'
+        print('error during warehousedarticle updating part 2')
     try:
         articleid = str(uuid.uuid4())
+        #print('success during uuid')
     except:
-        print('error during hashing')
-        
-    try:
-        z.append(warehousedarticle)
-    except:
-        print("couldn't append to z")
+        print('error during uuid')
+ 
+#       Can't figure out what i was doing here lol
+#    try:
+#        z.append(warehousedarticle)
+#    except:
+#        print("couldn't append to z")
 
     try:
         print("Publishing article:", source, title)
-        table.put_item(
+        response = table.put_item(
                 Item={
+                    'articleid': articleid,
+                    'userid': userid,
                     'author': author,
                     'capturedat': capturedat,
                     'lastseenat': lastseenat,
@@ -171,10 +203,10 @@ def publish(warehousedarticle):
                     'url': url,
                     'urlToImage': urlToImage,
                     'redditid': redditid,
-                    'redditurl': redditurl,
-                    'articleid': articleid,
+                    'redditurl': redditurl
                 }
             )
+        print(response['ResponseMetadata']['HTTPStatusCode'])
     except:
         print('error during dynamodb publishing')
         print()
