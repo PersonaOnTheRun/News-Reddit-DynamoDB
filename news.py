@@ -19,6 +19,8 @@ import datetime
 from dateutil import tz
 import hashlib
 
+import uuid
+
 from credentials import *
 
 #innitialize reddit
@@ -33,6 +35,9 @@ subreddit = reddit.subreddit('thenewsrightnow')
 #home or away
 home = '/Users/cammilligan/Dropbox/Projects/News-Reddit-DynamoDB/warehouse.txt'
 away = '/home/ec2-user/newsengine/scripts/warehouse.txt'
+
+#unhash below if on AWS
+home = away
 
 
 ##initalize dynamodb connection
@@ -64,7 +69,7 @@ freshdumptitles = []
 
 def initializewh():
     print('initializing warehouse')
-    with open(away, 'r') as wh:
+    with open(home, 'r') as wh:
         x = json.loads(wh.read())
         x = json.loads(x)
         for article in x:
@@ -103,7 +108,7 @@ def runit():
     cleanupwarehouse()
 
 def cleanupwarehouse():
-    with open(away, 'w+') as whc:
+    with open(home, 'w+') as whc:
         x = json.dumps(freshdump)
         json.dump(x,whc)
         whc.close()
@@ -117,7 +122,6 @@ def prunewarehouse(freshdump,freshdumptitles):
             publish(warehousedarticle)
     print('publishing complete')
 
-z = []
 
 def publish(warehousedarticle):
     try:
@@ -144,7 +148,7 @@ def publish(warehousedarticle):
     except:
         print('error during warehousedarticle updating')
     try:
-        hex_dig = hashlib.sha256(json.dumps(warehousedarticle, sort_keys=True).encode('utf-8')).hexdigest()
+        articleid = str(uuid.uuid4())
     except:
         print('error during hashing')
         
@@ -168,7 +172,7 @@ def publish(warehousedarticle):
                     'urlToImage': urlToImage,
                     'redditid': redditid,
                     'redditurl': redditurl,
-                    'articleid': hex_dig,
+                    'articleid': articleid,
                 }
             )
     except:
