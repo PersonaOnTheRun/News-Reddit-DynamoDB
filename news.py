@@ -37,7 +37,7 @@ home = '/Users/cammilligan/Dropbox/Projects/News-Reddit-DynamoDB/warehouse.txt'
 away = '/home/ec2-user/newsengine/scripts/warehouse.txt'
 
 #unhash below if on AWS
-home = away
+bhome = away
 
 if home == away:
     userid = "AWS"
@@ -189,6 +189,7 @@ def publish(warehousedarticle):
 
     try:
         print("Publishing article:", source, title)
+        time.sleep(2)
         response = table.put_item(
                 Item={
                     'articleid': articleid,
