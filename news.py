@@ -37,7 +37,7 @@ home = '/Users/cammilligan/Dropbox/Projects/News-Reddit-DynamoDB/warehouse.txt'
 away = '/home/ec2-user/newsengine/scripts/warehouse.txt'
 
 #unhash below if on AWS
-bhome = away
+home = away
 
 if home == away:
     userid = "AWS"
